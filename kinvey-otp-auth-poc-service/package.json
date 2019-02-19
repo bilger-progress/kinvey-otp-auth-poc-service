@@ -1,0 +1,29 @@
+{
+  "name": "kinvey-otp-auth-poc-service",
+  "version": "1.0.18",
+  "description": "Proof of Concept for One-Time-Password Auth on Kinvey.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bilger-progress/kinvey-otp-auth-poc-service.git"
+  },
+  "keywords": [
+    "OTP",
+    "Service",
+    "POC"
+  ],
+  "author": "Bilger Yahov @ Kinvey by Progress",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bilger-progress/kinvey-otp-auth-poc-service/issues"
+  },
+  "homepage": "https://github.com/bilger-progress/kinvey-otp-auth-poc-service#readme",
+  "dependencies": {
+    "kinvey-flex-sdk": "3.2.1",
+    "otp.js": "1.1.0",
+    "jsonwebtoken": "8.4.0"
+  }
+}
