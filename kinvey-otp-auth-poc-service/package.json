@@ -1,6 +1,6 @@
 {
   "name": "kinvey-otp-auth-poc-service",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Proof of Concept for One-Time-Password Auth on Kinvey.",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,10 @@
   "keywords": [
     "OTP",
     "Service",
-    "POC"
+    "POC",
+    "Kinvey",
+    "Backend",
+    "Serverless"
   ],
   "author": "Bilger Yahov @ Kinvey by Progress",
   "license": "ISC",
