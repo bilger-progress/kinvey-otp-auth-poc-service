@@ -4,11 +4,17 @@
 const kinveyFlexSDK = require("kinvey-flex-sdk");
 const OTPjs = require("otp.js");
 const jsonWebToken = require('jsonwebtoken');
+const crypto = require("crypto");
 
 // The service version is returned within the request/response cycle.
 const { version: serviceVersion } = require("./package.json");
-
-// The Kinvey collection, which stores the OTP users.
+ 
+/**
+ * The collection, which stores the OTP users.
+ * This collection needs to be fully private. 
+ * So all actions on it should be forbidden.
+ * No Create, Read, Update, Delete.
+ */
 const OTP_USERS_COLLECTION = "otp-users";
 
 // Random secret.
@@ -44,7 +50,8 @@ kinveyFlexSDK.service((flexError, flexObj) => {
             // User not present. Go ahead.
             return promisify((callback) => {
                 return modules.dataStore().collection(OTP_USERS_COLLECTION).save({
-                    emailAddress: context.body.emailAddress
+                    emailAddress: context.body.emailAddress,
+                    otpSecret: crypto.randomBytes(30).toString("hex")
                 }, callback);
             });
         }).then((data) => {
@@ -83,8 +90,9 @@ kinveyFlexSDK.service((flexError, flexObj) => {
                 }).notFound().done();
             }
             // User is present. Continue generating OTP.
-            const generatedCode = OTPjs.totp.gen({ string: context.body.emailAddress },
-                { time: 30, timestamp: new Date().getTime(), codeDigits: 6, addChecksum: false, algorithm: "sha1" });
+            let userObj = data[0];
+            const generatedCode = OTPjs.totp.gen( { string : userObj.emailAddress + userObj.otpSecret },
+                { time : 30, timestamp :new Date().getTime(), codeDigits : 6, addChecksum : false, algorithm : "sha1" } );
             // Send OTP to that e-mail address.
             return promisify((callback) => {
                 return modules.email.send("kinvey@kinvey.com", context.body.emailAddress, "Your OTP!",
@@ -108,15 +116,25 @@ kinveyFlexSDK.service((flexError, flexObj) => {
     });
 
     /**
-     * Function, which will verify the validity of a OTP for a particular User (e-mail address).
-     * If OTP is valid, an access token will be signed and returned.
-     * The Kinvey Backend expects "username" and "password" fields. That's why the
-     * e-mail address and OTP code are masked as "username" and "password".
+     * Function, which will verify the validity of a OTP for a particular User.
+     * If OTP is valid, an access token will be signed and returned. The Kinvey 
+     * Backend (MIC configuration) expects "username" and "password" fields. 
+     * That's why the e-mail address and OTP code are masked as "username" and "password".
      */
     flexObj.auth.register("verifyOTP", (context, complete, modules) => {
-        try {
-            const codeVerificationResult = OTPjs.totp.verify(context.body.password, {string:context.body.username},
-                {window:1, time:30, timestamp:new Date().getTime(), addChecksum:false, algorithm:"sha1"});
+        return promisify((callback) => {
+            return modules.dataStore().collection(OTP_USERS_COLLECTION)
+                .find(new modules.Query().equalTo("emailAddress", context.body.username), callback);
+        }).then((data) => {
+            if (!data[0]) {
+                // User not present.
+                console.error("#verifyOTP: This User is not present in the collection!");
+                return complete().accessDenied("User not registered!").done();
+            }
+            // User is present. Continue verifying OTP.
+            let userObj = data[0];
+            const codeVerificationResult = OTPjs.totp.verify(context.body.password, { string : userObj.emailAddress + userObj.otpSecret },
+                { window : 1, time : 30, timestamp : new Date().getTime(), addChecksum : false, algorithm : "sha1" } );
             // Check if all is fine with the verification.
             if (!codeVerificationResult || typeof codeVerificationResult === "undefined") {
                 console.error("#verifyOTP: Something went wrong while verifying the OTP.");
@@ -126,12 +144,12 @@ kinveyFlexSDK.service((flexError, flexObj) => {
             // All should be fine.
             console.log("#verifyOTP: " + JSON.stringify(codeVerificationResult));
             // Generate a token for this User.
-            const userToken = jsonWebToken.sign({username:context.body.username}, TOKEN_SECRET, {expiresIn: 3600});
+            const userToken = jsonWebToken.sign( { emailAddress : userObj.emailAddress }, TOKEN_SECRET, { expiresIn : 3600 } );
             return complete().setToken(userToken).ok().next();
-        } catch (error) {
+        }).catch((error) => {
             console.error("#verifyOTP: " + JSON.stringify(error));
             return complete().serverError("Something went wrong while verifying the OTP.").done();
-        }
+        });
     });
 });
 
