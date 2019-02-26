@@ -1,6 +1,8 @@
 # kinvey-otp-auth-poc-service
 Proof of Concept for One-Time-Password Auth on Kinvey.
 
+# This is NOT official implementation of OTP mechanism with Kinvey. This is not secure enough, since sending one-time-passwords via e-mail or SMS is inherently insecure.
+
 ## Architecture
 The Proof-of-Concept project contains a single Kinvey app, and two Kinvey services:
   - Flex service - FSR runtime
