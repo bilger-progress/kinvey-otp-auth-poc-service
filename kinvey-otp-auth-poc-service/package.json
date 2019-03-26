@@ -1,6 +1,6 @@
 {
   "name": "kinvey-otp-auth-poc-service",
-  "version": "4.0.0",
+  "version": "4.0.2",
   "description": "Proof of Concept for One-Time-Password Auth on Kinvey.",
   "main": "index.js",
   "scripts": {
@@ -27,6 +27,7 @@
   "dependencies": {
     "kinvey-flex-sdk": "3.2.1",
     "otplib": "^11.0.0",
-    "qrcode": "^1.3.3"
+    "qrcode": "^1.3.3",
+    "jsonwebtoken": "8.5.1"
   }
 }
