@@ -4,6 +4,8 @@ const kinveyFlexSdk = require("kinvey-flex-sdk");
 const otplib = require("otplib");
 const qrcode = require("qrcode");
 const jsonwebtoken = require("jsonwebtoken");
+const crypto = require("crypto");
+const moment = require("moment");
 
 const { version } = require("./package.json");
 
@@ -104,6 +106,58 @@ kinveyFlexSdk.service((flexError, flexObj) => {
             }).catch((error) => {
                 console.error("#authenticateOTPUser: " + JSON.stringify(error));
                 return complete().serverError("Something went wrong with the authentication process.").done();
+            });
+    });
+
+    flexObj.functions.register("resetOTPUser", (context, complete, modules) => {
+        const auth = (context.headers.authorization).replace("Basic ", "");
+        const authBuf = Buffer.from(auth, "base64").toString();
+        const isAuthValid = authBuf === modules.backendContext.getAppKey() + ":" + modules.backendContext.getMasterSecret();
+        if (!isAuthValid) {
+            console.error("#resetOTPUser: Unauthorized!");
+            return complete().setBody({
+                success: false,
+                debug: "You cannot perform this operation!",
+                version
+            }).unauthorized().done();
+        }
+        let token = null;
+        return fetchUser(context.body.emailAddress, modules)
+            .then((data) => {
+                if (!data) {
+                    console.error("#resetOTPUser: User does not exist!");
+                    return complete().setBody({
+                        success: false,
+                        debug: "User does not exist!",
+                        version
+                    }).badRequest().done();
+                }
+                data.resetOTPUserTokens = data.resetOTPUserTokens || [];
+                token = crypto.randomBytes(60).toString("hex");
+                data.resetOTPUserTokens.push({
+                    token,
+                    issuedAt: moment().toISOString()
+                });
+                const savePromisified = promisify(modules.dataStore().collection(OTP_USERS_COLLECTION).save);
+                return savePromisified(data);
+            }).then((data) => {
+                const sendPromisified = modules.email.send;
+                return sendPromisified("kinvey@kinvey.com", data.emailAddress, "Reset OTP User",
+                "Please use the following code to re-set your OTP user account: " + token);
+            }).then((data) => {
+                console.log("#resetOTPUser: " + JSON.stringify(data));
+                return complete().setBody({
+                    success: "true",
+                    debug: "Successful OTP user re-set.",
+                    version
+                }).ok().next();
+            }).catch((error) => {
+                console.error("#resetOTPUser: " + JSON.stringify(error));
+                return complete().setBody({
+                    success: false,
+                    debug: "Error occured while trying to re-set an OTP user. Please check logs.",
+                    version
+                }).runtimeError().done();
             });
     });
 });
