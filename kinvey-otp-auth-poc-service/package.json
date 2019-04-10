@@ -1,6 +1,6 @@
 {
   "name": "kinvey-otp-auth-poc-service",
-  "version": "4.0.6",
+  "version": "5.0.1",
   "description": "Proof of Concept for One-Time-Password Auth on Kinvey.",
   "main": "index.js",
   "scripts": {
