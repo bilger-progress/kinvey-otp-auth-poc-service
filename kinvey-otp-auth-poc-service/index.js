@@ -19,6 +19,7 @@ const OTP_USER_TOKEN_SECRET = "s3cr37";
 const OTP_SERVICE_NAME = "KinveyOTP";
 const OTP_SERVICE_EMAIL = "kinvey@kinvey.kinvey";
 
+// TODO: Might want to save the "expiresAt" date/time instead of saving "issuedAt" date/time. 
 const lessThanOneHourAgo = (date) => {
     return moment(date).isAfter(moment().subtract(1, "hours"));
 }
@@ -188,6 +189,7 @@ kinveyFlexSdk.service((flexError, flexObj) => {
                 // Add a new token for OTP resetting.
                 data.resetOTPUserTokens = data.resetOTPUserTokens || [];
                 token = crypto.randomBytes(60).toString("hex");
+                // Make sure to add at the beginning of the array.
                 data.resetOTPUserTokens.unshift({
                     token,
                     issuedAt: new moment().toISOString()
